@@ -1,8 +1,9 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, WebSocket
 from models.user import User
 from config.db import conn
 from schemas.user import userEntity, usersEntity
 from bson import ObjectId
+from time import sleep
 
 user = APIRouter()
 
@@ -31,3 +32,20 @@ async def update_user(id:str, user: User):
 @user.delete("/{id}")
 async def delete_user(id:str):
     return userEntity(conn.learning1.user.find_one_and_delete({"_id": ObjectId(id)}))
+
+
+websocket_list = []
+@user.websocket("/ws")
+async def counter(websocket: WebSocket):
+    await websocket.accept()
+    if websocket not in websocket_list:
+        websocket_list.append(websocket)
+
+    while True:
+        data = await websocket.receive_text()
+        if data.lower() == "quit":
+            await websocket.send_text("Websocket Closed!!")
+            await websocket.close()
+            break
+        else:
+            await websocket.send_text(data)
